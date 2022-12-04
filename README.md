@@ -1,6 +1,4 @@
-# Tema_aplicatie
- An app that searches and books train tickets.
-## LABORATOR 7
+# README
 ### Ștefănescu Denisa Raluca
 ### 322AC
 
@@ -27,6 +25,6 @@ Alte metode pentru sporirea securității sistemului la autentificare sunt utili
 
 Câteva mențiuni despre proiect:
 -	Screenshoturile s-ar putea să nu arate fiecare aspect pe care l-am implementat. Există o posibilitate să fi uitat să fac poze (scuze)
--	Programul se rulează din terminal cu comenzile gpp *.cp -o run și .\run
+-	Programul se rulează din terminal cu comenzile **gpp *.cp -o run** și **.\run**
 -	https://github.com/RalucaStef/Tema_aplicatie
 
