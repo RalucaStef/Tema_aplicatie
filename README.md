@@ -1,6 +1,5 @@
 # README
-### Ștefănescu Denisa Raluca
-### 322AC
+### Aplicație pentru rezervarea călătoriilor cu trenul
 
 #### Autentificarea
 **Autentificarea** este, conform cuvântului din limba greacă autenticos, procesul prin care este dovedită veridicitatea unei afirmații, așa cum cineva pretinde.
