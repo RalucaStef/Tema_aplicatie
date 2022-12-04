@@ -1,11 +1,19 @@
 # Tema_aplicatie
  An app that searches and books train tickets.
-LABORATOR 7
-Ștefănescu Denisa Raluca
-322AC
+##LABORATOR 7
+###Ștefănescu Denisa Raluca
+###322AC
 
-Autentificarea este, conform cuvântului din limba greacă autenticos, procesul prin care este dovedită veridicitatea unei afirmații, așa cum cineva pretinde. Autentificarea se realizează în general cu ajutorul unor unui nume de utilizator și a unei parole. Un exemplu de autentificare din viața reală este prezentarea pașaportului la terminalul de check-in al unui aeroport pentru primirea talonul de îmbarcare.
-Autorizarea este procesul care urmează, în general, după autentificare, deoarece acesta acordă privilegii utilizatorului pentru diferite funcționalități ale unei aplicații, de obicei conform permisiunilor corespunzătoare nivelului de privilegiu (în cazul acestei aplicații, utilizatorii nu pot adauga sau șterge curse din baza de date). În cadrul acestui proiect, am implementat această diferențiere înca din meniul de login, după care am împărțit pe ramuri metodele pentru fiecare tip de cont. Un exemplu din viața reală ar putea fi un dulap cu cheie. Persoana care deține dulapul (prin extensie, și cheia) poate garanta dreptul de acces la dulap oricui dorește.
+####Autentificarea
+**Autentificarea** este, conform cuvântului din limba greacă autenticos, procesul prin care este dovedită veridicitatea unei afirmații, așa cum cineva pretinde.
+Autentificarea se realizează în general cu ajutorul unor unui nume de utilizator și a unei parole. 
+Un exemplu de autentificare din viața reală este prezentarea pașaportului la terminalul de check-in al unui aeroport pentru primirea talonul de îmbarcare.
+####Autorizarea
+**Autorizarea** este procesul care urmează, în general, după autentificare, deoarece acesta acordă privilegii utilizatorului pentru diferite funcționalități 
+ale unei aplicații, de obicei conform permisiunilor corespunzătoare nivelului de privilegiu (în cazul acestei aplicații, utilizatorii nu pot adauga sau șterge curse din baza de date). 
+În cadrul acestui proiect, am implementat această diferențiere înca din meniul de login, după care am împărțit pe ramuri metodele pentru fiecare tip de cont.
+Un exemplu din viața reală ar putea fi un dulap cu cheie. Persoana care deține dulapul (prin extensie, și cheia) poate garanta dreptul de acces la dulap oricui dorește.
+####Logarea
 Login (sau logarea) este procesul prin care un utilizator primește acces în cadrul unui sistem. De multe  ori, login înseamnă chiar acreditările folosite la autentificare (nume de utilizator și parolă). Opusul logării este delogarea.
 Logarea în general se realizează cu ajutorul următorilor pași:
 1.	Utilizatorul intră în aplicație/program. Dacă sesiunea precedentă nu a fost incheiată, aceasta este de cele mai multe ori redirecționat către pagina de start a acelei aplicații.
