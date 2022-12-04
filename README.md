@@ -26,4 +26,8 @@ Câteva mențiuni despre proiect:
 -	Screenshoturile s-ar putea să nu arate fiecare aspect pe care l-am implementat. Există o posibilitate să fi uitat să fac poze (scuze)
 -	Programul se rulează din terminal cu comenzile **gpp *.cp -o run** și **.\run**
 -	https://github.com/RalucaStef/Tema_aplicatie
+-	Acreditările utilizatorilor creati de mine sunt:
+	-	matei, Matei1234
+	-	nyan, NyanNyan2020
+	-	user1, paroLaMea1
 
