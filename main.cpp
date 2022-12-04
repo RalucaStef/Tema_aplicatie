@@ -1,471 +1,636 @@
+//  document
+
 #include <iostream>
-#include <stdlib.h>
-#include <string.h>
-#include <cmath>
-#include <sstream>
-#include <vector>
-#include <utility>
-#include <stdexcept>
-#include <fstream>
+#include <regex>
 #include <ctime>
+#include "Curse.h"
+#include "CSVIO.h"
+#include "Utilizator.h"
+#include "Operator.h"
+#include "RSA.h"
+
+#define USER_PATH "./data/db_useri.csv"
+#define OPERATOR_PATH "./data/db_operatori.csv"
+#define TRIP_PATH "./data/db_curse.csv"
 
 using namespace std;
 
-class RSAPass
+Utilizator user;
+Operator op;
+
+// Data validation section
+bool validateDate(string date)
 {
-private:
-    int x = 11, y = 13, n, t, i, flag, len;
-    long int e[50], d[50], temp[50], j;
-    char en[50], m[50];
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+    int year = 1900 + ltm->tm_year;
+    int month = 1 + ltm->tm_mon;
+    int day = ltm->tm_mday;
 
-public:
-    void insertPassword(char password[50])
+    string dayInput = date.substr(0, 2);
+    string monthInput = date.substr(3, 2);
+    string yearInput = date.substr(6);
+
+    // cout<<day<<" "<<month<<" "<<year<<"\n";
+    // cout<<dayInput<<" "<<monthInput<<" "<<yearInput<<"\n";
+
+    if (stoi(yearInput) <= year)
     {
-        for (i = 0; password[i] != '\0'; i++)
-            m[i] = password[i];
-
-        n = x * y;
-        t = (x - 1) * (y - 1);
-
-        len = strlen(password);
+        return false;
+    }
+    else if (stoi(yearInput) == year && stoi(monthInput) < month)
+    {
+        return false;
+    }
+    else if (stoi(yearInput) == year && stoi(monthInput) == month && stoi(dayInput) <= day)
+    {
+        return false;
     }
 
-    int prime(long int pr)
-    {
-        int i;
-        j = sqrt(pr);
+    const regex pattern("^(?:(?:31(/|-|.)(?:0?[13578]|1[02]))\\1|(?:(?:29|30)(/|-|.)(?:0?[13-9]|1[0-2])\\2))(?:(?:1[6-9]|[2-9]\\d)?\\d{2})$|^(?:29(/|-|.)0?2\\3(?:(?:(?:1[6-9]|[2-9]\\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\\d|2[0-8])(/|-|.)(?:(?:0?[1-9])|(?:1[0-2]))\\4(?:(?:1[6-9]|[2-9]\\d)?\\d{2})");
+    return regex_match(date, pattern);
+}
 
-        for (i = 2; i <= j; i++)
-            if (pr % i == 0)
-                return 0;
-
-        return 1;
-    }
-
-    long int cd(long int a)
-    {
-        long int k = 1;
-
-        while (1)
-        {
-            k = k + t;
-
-            if (k % a == 0)
-                return (k / a);
-        }
-    }
-
-    void encryption_key()
-    {
-        int k = 0;
-
-        for (i = 2; i < t; i++)
-        {
-            if (t % i == 0)
-                continue;
-
-            flag = prime(i);
-
-            if (flag == 1 && i != x && i != y)
-            {
-                e[k] = i;
-                flag = cd(e[k]);
-
-                if (flag > 0)
-                {
-                    d[k] = flag;
-                    k++;
-                }
-
-                if (k == 99)
-                    break;
-            }
-        }
-    }
-
-    string encrypt()
-    {
-        long int pt, ct, key = e[0], k;
-        i = 0;
-
-        while (i != len)
-        {
-            pt = m[i];
-            pt = pt - 96;
-            k = 1;
-
-            for (j = 0; j < key; j++)
-            {
-                k = k * pt;
-                k = k % n;
-            }
-
-            temp[i] = k;
-            ct = k + 96;
-            en[i] = ct;
-            i++;
-        }
-
-        en[i] = '\0';
-
-        string s(en);
-
-        return s;
-    }
-
-    string decrypt()
-    {
-        long int pt, ct, key = d[0], k;
-        i = 0;
-
-        while (en[i] != '\0')
-        {
-            ct = temp[i];
-            k = 1;
-
-            for (j = 0; j < key; j++)
-            {
-                k = k * ct;
-                k = k % n;
-            }
-
-            pt = k + 96;
-            m[i] = pt;
-            i++;
-        }
-
-        m[i] = '\0';
-
-        string s(m);
-
-        return s;
-    }
-};
-
-class User : public RSAPass
+bool validateEmail(string email)
 {
-private:
-    string username;
-    string password;
-    string origin;
-    string arrival;
-    string date;
-    char passwordToBeEncrypted[50];
+    const regex pattern("(\\w+)(\\.|_)?(\\w*)@(\\w+)(\\.(\\w+))+");
+    return regex_match(email, pattern);
+}
 
-public:
-    void createAccount()
+bool validateCity(string city)
+{
+    const regex pattern("^(\\s)*[A-Z]+((\\s)?((\'|\\-|\\.)?([A-Za-z])+))*(\\s)*$");
+    return regex_match(city, pattern);
+}
+
+bool validateUsername(string username)
+{
+    for (int i = 0; i < username.length(); i++)
     {
-        fstream file;
-        file.open("databaseUser.csv", ios::app);
-        cout << "Enter the username of the new account: ";
-        cin >> username;
+        if (username[i] == ' ')
+        {
+            cout << "The format of the username is incorrect!\n";
+            return false;
+        }
+    }
 
-        cout << "Enter the password of the new acount: ";
+    CSVIO csvIO = CSVIO();
+    auto useri = csvIO.read(USER_PATH);
+    for (auto user : useri)
+    {
+
+        if (username == user[0])
+        {
+            cout << "The username already exists!\n";
+            return false;
+        }
+    }
+    return true;
+}
+
+bool validatePassword(string &password)
+{
+    bool lowercase = false, uppercase = false, digit = false;
+    if (password.length() < 8)
+    {
+        cout << "The password is too short!";
+        return false;
+    }
+    for (int i = 0; i < password.length(); i++)
+    {
+        if (islower(password[i]))
+            lowercase = true;
+        if (isupper(password[i]))
+            uppercase = true;
+        if (isdigit(password[i]))
+            digit = true;
+    }
+    if (lowercase && uppercase && digit && password.length() >= 8)
+    {
+        return true;
+    }
+    return false;
+}
+
+// All login functions
+bool login_user(string userName, string password)
+{
+    RSA rsa;
+    CSVIO csvIO = CSVIO();
+    auto useri = csvIO.read(USER_PATH);
+    for (auto user : useri)
+    {
+
+        if (userName == user[0])
+        {
+            // std::string decodedPassword = rsa.decryptPassword(user[2]);
+            // cout << decodedPassword;
+            // cout << rsa.decryptPassword(user[2]) << endl;
+            // cout << user[2] << " " << password << " " << rsa.encryptPassword(password) << " " << rsa.decryptPassword(user[2]) << "\n";
+            return user[2] == rsa.encryptPassword(password); // return false if the password is not the one in the DB;
+        }
+    }
+    return false;
+}
+
+bool login_operator(string userName, string password)
+{
+    CSVIO csvIO = CSVIO();
+    auto operatori = csvIO.read(OPERATOR_PATH);
+    for (auto op : operatori)
+    {
+        if (userName == op[0])
+        {
+            return password == op[1]; // return false if the password is not the one in the DB;
+        }
+    }
+    return false;
+}
+
+bool create_account(string userName, string email, string password, string repeatedPassword)
+{
+    if (password != repeatedPassword)
+    {
+        throw "Password is not the repeated password!\n";
+        return false;
+    }
+
+    CSVIO csvIO = CSVIO();
+    auto users = csvIO.read(USER_PATH);
+    RSA rsa;
+    std::string encodedPassword = rsa.encryptPassword(password);
+    std::vector<std::string> newUser = {userName, email, encodedPassword};
+    users.push_back(newUser);
+    csvIO.write(users, USER_PATH);
+
+    return true;
+}
+
+// The "actions" of the menu
+//  First action includes the login for both users and operators, as well as create an account option
+bool primaActiune(int answer)
+{
+    switch (answer)
+    {
+    case 1:
+    {
+        string userName, email, password;
+
+        cout << "Enter your username: ";
+        cin >> userName;
+
+        cout << "Enter your password: ";
         cin >> password;
 
-        if (password.length() < 6 || password.length() > 18)
+        try
         {
-            throw "The password must have in between 6 and 18 characters!";
+            if (!login_user(userName, password))
+            {
+                throw "Username and password do not match!\n";
+            }
+        }
+        catch (const char *msg)
+        {
+            cout << msg << endl;
+            return false;
         }
 
-        file << username << ",";
-
-        strcpy(passwordToBeEncrypted, password.c_str());
-
-        insertPassword(passwordToBeEncrypted);
-        encryption_key();
-        string passwordEncrypted = encrypt();
-
-        file << passwordEncrypted << "," << 0 << "\n";
-
-        file.close();
+        user = Utilizator(userName, email);
+        cout << "Logged in succesfully!\n\n";
+        return true;
     }
-    bool login()
+    break;
+    case 2:
     {
-    }
-    void searchTrip()
-    {
-    }
-    void bookTrip()
-    {
-    }
-};
+        string userName, password;
 
-class Operator
-{
-private:
-    string username, password, origin, arrival, date;
+        cout << "Enter your operator username: ";
+        cin >> userName;
 
-public:
-    bool authentication()
-    {
-        ifstream file;
-        string temp;
-
-        cout << "Please enter your username: ";
-        cin >> username;
-
-        cout << "Please enter your password: ";
+        cout << "Enter your password: ";
         cin >> password;
 
-        file.open("database.csv", ios::in);
-
-        if (!file.is_open())
+        try
         {
-            throw runtime_error("Could not open file!");
-        }
-
-        vector<string> usercolumn;
-        string line, user;
-        int count = 0;
-
-        // ***************
-        // ***************
-        // ***************
-        // ******WIP******
-        // ***************
-        // ***************
-        // ***************
-        while (!file.eof())
-        {
-            getline(file, line);
-            stringstream s(line);
-            cout << line << endl;
-
-            while (getline(s, user, ','))
+            if (!login_operator(userName, password))
             {
-                usercolumn.push_back(user);
+                throw "Operator username and password do not match!\n";
             }
-
-            count++;
         }
-        file.close();
+        catch (const char *msg)
+        {
+            cout << msg << endl;
+            return false;
+        }
 
-        throw "Incorrect username or password!";
-
-                return false;
+        op = Operator(userName);
+        cout << "Logged in succesfully!\n\n";
+        return true;
     }
-
-    void addTrip()
+    break;
+    case 3:
     {
-        int day, month, year;
+        string userName, email, password, repeatedPassword;
 
-        fstream file;
-        file.open("database.csv", ios::app);
+        cout << "Enter your desired username: ";
+        std::getline(std::cin >> std::ws, userName);
 
-        if (!file.is_open())
+        try
         {
-            throw runtime_error("Could not open file!");
-        }
-
-        cout << "Please enter the city of origin: ";
-        cin >> origin;
-
-        if (!(origin[0] >= 'A' && origin[0] <= 'Z') || (origin[0] >= 'a' && origin[0] <= 'z'))
-            throw "Please input the name of the city with a capital letter!";
-
-        for (int i = 0; i < origin.length(); i++)
-        {
-            if (!(origin[i] >= 'a' && origin[i] <= 'z'))
+            if (!validateUsername(userName))
             {
-                throw "No city exists that contains those characters!";
+                throw "Error!";
             }
         }
-
-        cout << "Please enter the city of arrival: ";
-        cin >> arrival;
-
-        if (!(arrival[0] >= 'A' && arrival[0] <= 'Z') || (arrival[0] >= 'a' && arrival[0] <= 'z'))
-            throw "Please input the name of the city with a capital letter!";
-
-        for (int i = 0; i < arrival.length(); i++)
+        catch (const char *msg)
         {
-            if (!(arrival[i] >= 'a' && arrival[i] <= 'z'))
+            cout << msg << "\n";
+            return false;
+        }
+
+        cout << "Enter your email: ";
+        cin >> email;
+
+        try
+        {
+            if (!validateEmail(email))
             {
-                throw "No city exists that contains those characters!";
+                throw "The email address has the wrong format!\n";
             }
         }
-
-        cout << "Please enter the date of the trip (DD/MM/YYYY): ";
-        cin >> date;
-
-        if (date.length() != 10)
+        catch (const char *msg)
         {
-            throw "The date is written incorrectly!";
+            cout << msg << endl;
+            return false;
         }
 
-        if (date[2] != '/' || date[5] != '/')
+        cout << "Enter your password: ";
+        cin >> password;
+
+        try
         {
-            throw "The date is written incorrectly!";
+            if (!validatePassword(password))
+            {
+                throw "The password does not have the expect format!\nIt must contain at least one upper character, one lower character,\na digit and it must have at least 8 characters!\n";
+            }
+        }
+        catch (const char *msg)
+        {
+            cout << msg << endl;
+            return false;
         }
 
-        day = stoi(date.substr(0, 2));
-        month = stoi(date.substr(3, 2));
-        year = stoi(date.substr(6));
+        cout << "Enter your repeated password: ";
+        cin >> repeatedPassword;
 
-        time_t now = time(0);
-        tm *ltm = localtime(&now);
-
-        int yearNow = 1900 + ltm->tm_year;
-        int monthNow = 1 + ltm->tm_mon;
-        int dayNow = ltm->tm_mday;
-
-        if (day < dayNow && month < monthNow && year < yearNow)
+        try
         {
-            throw "You entered a date from the past!";
+            if (!create_account(userName, email, password, repeatedPassword))
+            {
+                throw "Could not create a new account! Try again!\n";
+            }
+        }
+        catch (const char msg)
+        {
+            cout << msg << endl;
+            return false;
         }
 
-        if (month < 1 && month > 12)
-        {
-            throw "This date does not exist!";
-        }
-
-        if (((day < 1 && day > 28) && month == 2) || ((day < 1 && day > 29) && month == 2 || (year % 4 == 0 && year % 100 != 0)) || ((day < 1 && day > 29) && month == 2 || year % 400 == 0))
-        {
-            throw "This date does not exist!";
-        }
-
-        if ((day < 1 && day > 31) && (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 10 || month == 12))
-        {
-            throw "This date does not exist!";
-        }
-
-        if ((day < 1 && day > 30) && (month == 4 || month == 6 || month == 9 || month == 11))
-        {
-            throw "This date does not exist!";
-        }
-
-        file << username << "," << password << "," << origin << "," << arrival << "," << date << "\n";
-
-        file.close();
+        cout << "\nCreated account succesfully!" << endl;
+        return false;
     }
+    break;
+    default:
+        return false;
+        break;
+    }
+}
 
-    void deleteTrip()
+// Second action, which includes menu navigation according to the type of account that is currently logged in
+bool aDouaActiuneUser(int answer)
+{
+    CSVIO csvio = CSVIO();
+    Curse trips = Curse(csvio.read(TRIP_PATH));
+    string origin, destination, date;
+    switch (answer)
     {
-        fstream file, fileTemp;
-        file.open("database.csv", ios::in);
-        fileTemp.open("temp.csv", ios::out);
+    case 0: // logout
+        return false;
+        break;
+    case 1: // search trip
+    {
 
-        if (!file.is_open())
+        cout << "Enter the origin city (enter - if u want to leave this option blank): ";
+        std::getline(std::cin >> std::ws, origin);
+
+        try
         {
-            throw runtime_error("Could not open file!");
-        }
-
-        int day, month, year;
-
-        cout << "Please enter the city of origin: ";
-        cin >> origin;
-
-        if (!(origin[0] >= 'A' && origin[0] <= 'Z') || (origin[0] >= 'a' && origin[0] <= 'z'))
-            throw "Please input the name of the city with a capital letter!";
-
-        for (int i = 0; i < origin.length(); i++)
-        {
-            if (!(origin[i] >= 'a' && origin[i] <= 'z'))
+            if (!validateCity(origin))
             {
-                throw "No city exists that contains those characters!";
+                throw "The city of departure has the wrong format!\n";
             }
         }
-
-        cout << "Please enter the city of arrival: ";
-        cin >> arrival;
-
-        if (!(arrival[0] >= 'A' && arrival[0] <= 'Z') || (arrival[0] >= 'a' && arrival[0] <= 'z'))
-            throw "Please input the name of the city with a capital letter!";
-
-        for (int i = 0; i < arrival.length(); i++)
+        catch (const char *msg)
         {
-            if (!(arrival[i] >= 'a' && arrival[i] <= 'z'))
+            cout << msg << endl;
+            return false;
+        }
+
+        fflush(stdin);
+        cout << "Enter the destination city (enter - if u want to leave this option blank): ";
+        std::getline(std::cin >> std::ws, destination);
+
+        try
+        {
+            if (!validateCity(destination))
             {
-                throw "No city exists that contains those characters!";
+                throw "The city of arrival has the wrong format!\n";
             }
         }
-
-        cout << "Please enter the date of the trip (DD/MM/YYYY): ";
-        cin >> date;
-
-        if (date.length() != 10)
+        catch (const char *msg)
         {
-            throw "The date is written incorrectly!";
+            cout << msg << endl;
+            return false;
         }
 
-        if (date[2] != '/' || date[5] != '/')
+        fflush(stdin);
+        cout << "Enter the date of the trip (enter - if u want to leave this option blank): ";
+        std::getline(std::cin >> std::ws, date);
+
+        try
         {
-            throw "The date is written incorrectly!";
-        }
-
-        // ***************
-        // ***************
-        // ***************
-        // ******WIP******
-        // ***************
-        // ***************
-        // ***************
-        // function that finds the trip in the csv
-        int tripNumber;
-
-        vector<string> row;
-        string word, line, temp;
-        string originTemp, arrivalTemp, dateTemp;
-        int count = 0, flag = 0;
-
-        while (!file.eof() && getline(file, line))
-        {
-            row.clear();
-            stringstream s(line);
-
-            getline(s, originTemp, ',');
-            getline(s, arrivalTemp, ',');
-            getline(s, dateTemp, ',');
-
-            if (tripNumber != count + 1)
+            if (!validateDate(date))
             {
-                if (!file.eof())
-                {
-                    fileTemp << username << "," << password << "," << origin << "," << arrival << "," << date << "\n";
-                }
+                throw "The date has the wrong format or is in the past!\n";
             }
-            else
-            {
-                flag = 1;
-            }
-            if (file.eof())
-            {
-                break;
-            }
-            count++;
         }
-        if (flag == 1)
+        catch (const char *msg)
         {
-            cout << "The trip has been deleted!";
+            cout << msg << endl;
+            return false;
         }
-        else
-            throw "The trip number could not be found!";
-        file.close();
-        fileTemp.close();
 
-        remove("database.csv");
-        rename("temp.csv", "database.csv");
+        auto result = user.searchTrip(trips, origin, destination, date);
+        cout << "\nTrips:\n";
+        for (auto r : result)
+        {
+            cout << r.toString();
+            cout << endl;
+        }
+        return true;
     }
-};
+    break;
+    case 2: // book trip
+    {
+        cout << "Enter the city of departure: ";
+        std::getline(std::cin >> std::ws, origin);
+
+        try
+        {
+            if (!validateCity(origin))
+            {
+                throw "The city of departure has the wrong format!\n";
+            }
+        }
+        catch (const char *msg)
+        {
+            cout << msg << endl;
+            return false;
+        }
+
+        fflush(stdin);
+        cout << "Enter the destination city: ";
+        std::getline(std::cin >> std::ws, destination);
+
+        try
+        {
+            if (!validateCity(destination))
+            {
+                throw "The city of arrival has the wrong format!\n";
+            }
+        }
+        catch (const char *msg)
+        {
+            cout << msg << endl;
+            return false;
+        }
+
+        fflush(stdin);
+        cout << "Enter the date of the trip: ";
+        std::getline(std::cin >> std::ws, date);
+
+        try
+        {
+            if (!validateDate(date))
+            {
+                throw "The date has the wrong format or is in the past!\n";
+            }
+        }
+        catch (const char *msg)
+        {
+            cout << msg << endl;
+            return false;
+        }
+
+        std::vector<std::string> rezervatii_gol = {};
+        Cursa wantedTrip = Cursa(origin, destination, date, rezervatii_gol);
+        user.reserveTrip(trips, wantedTrip);
+        csvio.write(trips.getRawData(), TRIP_PATH);
+        return true;
+    }
+    break;
+    default:
+        return false;
+    }
+    return false;
+}
+
+bool aDouaActiuneOp(int answer)
+{
+    CSVIO csvio = CSVIO();
+    Curse trips = Curse(csvio.read(TRIP_PATH));
+    string origin, destination, date;
+    switch (answer)
+    {
+    case 0: // logout
+        return false;
+        break;
+    case 1: // add trip
+    {
+        cout << "Enter the origin city that you want to add: ";
+        std::getline(std::cin >> std::ws, origin);
+
+        try
+        {
+            if (!validateCity(origin))
+            {
+                throw "The city of departure has the wrong format!\n";
+            }
+        }
+        catch (const char *msg)
+        {
+            cout << msg << endl;
+            return false;
+        }
+
+        fflush(stdin);
+        cout << "Enter the destination city that you want to add: ";
+        std::getline(std::cin >> std::ws, destination);
+
+        try
+        {
+            if (!validateCity(destination))
+            {
+                throw "The city of arrival has the wrong format!\n";
+            }
+        }
+        catch (const char *msg)
+        {
+            cout << msg << endl;
+            return false;
+        }
+
+        fflush(stdin);
+        cout << "Enter the date of the trip that you want to add: ";
+        std::getline(std::cin >> std::ws, date);
+
+        try
+        {
+            if (!validateDate(date))
+            {
+                throw "The date has the wrong format or is in the past!\n";
+            }
+        }
+        catch (const char *msg)
+        {
+            cout << msg << endl;
+            return false;
+        }
+
+        op.addTrip(trips, origin, destination, date);
+        csvio.write(trips.getRawData(), TRIP_PATH);
+        return true;
+    }
+    break;
+
+    case 2: // delete trip
+    {
+        cout << "Enter the origin city that you want to delete: ";
+        std::getline(std::cin >> std::ws, origin);
+
+        try
+        {
+            if (!validateCity(origin))
+            {
+                throw "The city of departure has the wrong format!\n";
+            }
+        }
+        catch (const char *msg)
+        {
+            cout << msg << endl;
+            return false;
+        }
+
+        fflush(stdin);
+        cout << "Enter the destination city that you want to delete: ";
+        std::getline(std::cin >> std::ws, destination);
+
+        try
+        {
+            if (!validateCity(destination))
+            {
+                throw "The city of arrival has the wrong format!\n";
+            }
+        }
+        catch (const char *msg)
+        {
+            cout << msg << endl;
+            return false;
+        }
+
+        fflush(stdin);
+        cout << "Enter the date of the trip that you want to delete: ";
+        std::getline(std::cin >> std::ws, date);
+
+        try
+        {
+            if (!validateDate(date))
+            {
+                throw "The date has the wrong format or is in the past!\n";
+            }
+        }
+        catch (const char *msg)
+        {
+            cout << msg << endl;
+            return false;
+        }
+
+        op.deleteTrip(trips, origin, destination, date);
+        csvio.write(trips.getRawData(), TRIP_PATH);
+        return true;
+    }
+    break;
+    default:
+        return false;
+    }
+
+    return false;
+}
 
 int main()
 {
-    Operator operator1;
+    int answer;
 
-    int x;
-    cout << "Who are you? Press the correct key according to your status:\n[1] Operator\n[2] User\n"
-         << endl;
-    cin >> x;
-
-    if (x == 1)
+    while (true)
     {
-        cout << "Input your username and password: " << endl;
-        if (operator1.authentication() == true)
+        // Login input validation
+        try
         {
-            cout << "Good job";
+            cout << "Welcome!\nPress 1 in order to log in as User.\nPress 2 in order to log in as Operator.\nPress 3 in order to create a new account.\n";
+            cin >> answer;
+        }
+        catch (...)
+        {
+            cout << "Invalid input. Please try again!\n";
+            continue;
+        }
+
+        if (primaActiune(answer))
+            break; // Exit the infinite loop when the action is properly finalized without errors
+        else
+        {
+            main();
         }
     }
 
+    // Can only only get here if login is successful.
+    int answer2;
+    while (true)
+    {
+        cout << "Select from the following menu one of the options:\n";
+        cout << "Press 0 in order to log out\n";
+        if (user.isLoggedIn)
+        {
+            cout << "Press 1 in order to search for a trip\nPress 2 to book a trip\n";
+            cin >> answer2;
+            if (!aDouaActiuneUser(answer2))
+            {
+                main();
+            }
+            else
+                continue;
+        }
+        else if (op.isLoggedIn)
+        {
+            cout << "Press 1 in order to add a trip\nPress 2 to delete a trip\n";
+            cin >> answer2;
+            if (!aDouaActiuneOp(answer2))
+            {
+                main();
+            }
+            else
+                continue;
+        }
+    }
     return 0;
 }
